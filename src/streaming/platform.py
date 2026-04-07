@@ -60,54 +60,40 @@ class StreamingPlatform:
     #q1
     def total_listening_time_minutes(self, start: datetime, end: datetime) -> float:
         all_seconds = 0
-
         for session in self._sessions:
             if start <= session.timestamp <= end:
                 all_seconds += session.duration_listened_seconds
-
         return all_seconds / 60.0
 
     #q2
     def avg_unique_tracks_per_premium_user(self, days: int = 30) -> float:
         premium_users = []
-
         for user in self._users.values():
             if type(user) is PremiumUser:
                 premium_users.append(user)
-
         if len(premium_users) == 0:
             return 0.0
-
         start_time = datetime.now() - timedelta(days=days)
         total_unique = 0
-
         for user in premium_users:
             listened_ids = set()
-
             for session in user.sessions:
                 if session.timestamp >= start_time:
                     listened_ids.add(session.track.track_id)
-
             total_unique += len(listened_ids)
-
         return total_unique / len(premium_users)
 
     #q3
     def track_with_most_distinct_listeners(self) -> Track | None:
         if len(self._sessions) == 0:
             return None
-
         listeners_per_track = {}
-
         for session in self._sessions:
             track_id = session.track.track_id
             user_id = session.user.user_id
-
             if track_id not in listeners_per_track:
                 listeners_per_track[track_id] = set()
-
             listeners_per_track[track_id].add(user_id)
-
         best_track = None
         best_count = -1
 
@@ -116,39 +102,30 @@ class StreamingPlatform:
             if current_count > best_count:
                 best_count = current_count
                 best_track = track
-
         return best_track
 
     #q4
     def avg_session_duration_by_user_type(self) -> list[tuple[str, float]]:
         seconds_by_type = {}
-
         for session in self._sessions:
             type_name = type(session.user).__name__
-
             if type_name not in seconds_by_type:
                 seconds_by_type[type_name] = []
-
             seconds_by_type[type_name].append(session.duration_listened_seconds)
-
         answer = []
-
         for type_name, values in seconds_by_type.items():
             average = sum(values) / len(values)
             answer.append((type_name, float(average)))
-
         answer.sort(key=lambda item: item[1], reverse=True)
         return answer
 
     #q5
     def total_listening_time_underage_sub_users_minutes(self, age_threshold: int = 18) -> float:
         all_seconds = 0
-
         for session in self._sessions:
             user = session.user
             if isinstance(user, FamilyMember) and user.age < age_threshold:
                 all_seconds += session.duration_listened_seconds
-
         return all_seconds / 60.0
 
     #q6
@@ -163,7 +140,6 @@ class StreamingPlatform:
 
                 if artist not in seconds_per_artist:
                     seconds_per_artist[artist] = 0
-
                 seconds_per_artist[artist] += session.duration_listened_seconds
 
         answer = []
@@ -177,23 +153,17 @@ class StreamingPlatform:
     #q7
     def user_top_genre(self, user_id: str) -> tuple[str, float] | None:
         user = self.get_user(user_id)
-
         if user is None:
             return None
-
         if len(user.sessions) == 0:
             return None
-
         seconds_per_genre = {}
         all_seconds = 0
-
         for session in user.sessions:
             genre = session.track.genre
             seconds = session.duration_listened_seconds
-
             if genre not in seconds_per_genre:
                 seconds_per_genre[genre] = 0
-
             seconds_per_genre[genre] += seconds
             all_seconds += seconds
 
@@ -204,46 +174,37 @@ class StreamingPlatform:
             if seconds > best_seconds:
                 best_seconds = seconds
                 best_genre = genre
-
         percentage = (best_seconds / all_seconds) * 100.0
         return (best_genre, percentage)
 
     #q8
     def collaborative_playlists_with_many_artists(self, threshold: int = 3) -> list[CollaborativePlaylist]:
         answer = []
-
         for playlist in self._playlists.values():
             if isinstance(playlist, CollaborativePlaylist):
                 artist_ids = set()
-
                 for track in playlist.tracks:
                     if isinstance(track, Song):
                         artist_ids.add(track.artist.artist_id)
-
                 if len(artist_ids) > threshold:
                     answer.append(playlist)
-
         return answer
 
     #q9
     def avg_tracks_per_playlist_type(self) -> dict[str, float]:
         normal_counts = []
         collaborative_counts = []
-
         for playlist in self._playlists.values():
             if type(playlist) is Playlist:
                 normal_counts.append(len(playlist.tracks))
             elif isinstance(playlist, CollaborativePlaylist):
                 collaborative_counts.append(len(playlist.tracks))
-
         normal_average = 0.0
         if len(normal_counts) > 0:
             normal_average = sum(normal_counts) / len(normal_counts)
-
         collaborative_average = 0.0
         if len(collaborative_counts) > 0:
             collaborative_average = sum(collaborative_counts) / len(collaborative_counts)
-
         return {
             "Playlist": float(normal_average),
             "CollaborativePlaylist": float(collaborative_average),
@@ -252,30 +213,21 @@ class StreamingPlatform:
     #q10
     def users_who_completed_albums(self) -> list[tuple[User, list[str]]]:
         answer = []
-
         for user in self._users.values():
             listened_ids = set()
-
             for session in user.sessions:
                 listened_ids.add(session.track.track_id)
-
             completed_titles = []
-
             for album in self._albums.values():
                 if len(album.tracks) == 0:
                     continue
-
                 completed = True
-
                 for track in album.tracks:
                     if track.track_id not in listened_ids:
                         completed = False
                         break
-
                 if completed:
                     completed_titles.append(album.title)
-
             if len(completed_titles) > 0:
                 answer.append((user, completed_titles))
-
         return answer
