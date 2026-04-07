@@ -14,6 +14,6 @@ class ListeningSession:
         self.track = track
         self.timestamp = timestamp
         self.duration_listened_seconds = duration_listened_seconds
-        
+
     def duration_listened_minutes(self) -> float:
         return self.duration_listened_seconds / 60.0

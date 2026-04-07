@@ -1,6 +1,9 @@
 from __future__ import annotations
+
 from abc import ABC
 from datetime import date
+
+
 class Track(ABC):
     def __init__(self, track_id: str, title: str, duration_seconds: int, genre: str) -> None:
         self.track_id = track_id
@@ -10,6 +13,14 @@ class Track(ABC):
 
     def duration_minutes(self) -> float:
         return self.duration_seconds / 60.0
+
+    def __eq__(self, other: object) -> bool:
+        if not isinstance(other, Track):
+            return False
+        return self.track_id == other.track_id
+
+    def __hash__(self) -> int:
+        return hash(self.track_id)
 
     def __str__(self) -> str:
         return self.title
@@ -59,7 +70,7 @@ class Podcast(Track):
         duration_seconds: int,
         genre: str,
         host: str,
-        description: str,
+        description: str = '',
     ) -> None:
         super().__init__(track_id, title, duration_seconds, genre)
         self.host = host
@@ -74,8 +85,8 @@ class InterviewEpisode(Podcast):
         duration_seconds: int,
         genre: str,
         host: str,
-        description: str,
         guest: str,
+        description: str = '',
     ) -> None:
         super().__init__(track_id, title, duration_seconds, genre, host, description)
         self.guest = guest
@@ -89,9 +100,9 @@ class NarrativeEpisode(Podcast):
         duration_seconds: int,
         genre: str,
         host: str,
-        description: str,
         season: int,
         episode_number: int,
+        description: str = '',
     ) -> None:
         super().__init__(track_id, title, duration_seconds, genre, host, description)
         self.season = season

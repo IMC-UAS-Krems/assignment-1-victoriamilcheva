@@ -1,4 +1,5 @@
 from __future__ import annotations
+
 class Artist:
     def __init__(self, artist_id: str, name: str, genre: str) -> None:
         self.artist_id = artist_id

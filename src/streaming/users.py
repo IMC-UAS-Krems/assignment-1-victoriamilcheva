@@ -1,6 +1,9 @@
 from __future__ import annotations
+
 from abc import ABC
 from datetime import date
+
+
 class User(ABC):
     def __init__(self, user_id: str, name: str, age: int) -> None:
         self.user_id = user_id
@@ -21,10 +24,10 @@ class User(ABC):
         return self.total_listening_seconds() / 60.0
 
     def unique_tracks_listened(self) -> set[str]:
-        track_ids: set[str] = set()
+        ids = set()
         for session in self.sessions:
-            track_ids.add(session.track.track_id)
-        return track_ids
+            ids.add(session.track.track_id)
+        return ids
 
     def __str__(self) -> str:
         return self.name
@@ -53,15 +56,16 @@ class FamilyAccountUser(User):
             self.sub_users.append(sub_user)
 
     def all_members(self) -> list[User]:
-        members: list[User] = [self]
+        all_people: list[User] = [self]
         for sub_user in self.sub_users:
-            members.append(sub_user)
-        return members
+            all_people.append(sub_user)
+        return all_people
 
 
 class FamilyMember(User):
     def __init__(self, user_id: str, name: str, age: int, parent: FamilyAccountUser) -> None:
         super().__init__(user_id, name, age)
         self.parent = parent
+
         if self not in parent.sub_users:
             parent.add_sub_user(self)

@@ -1,4 +1,6 @@
 from __future__ import annotations
+
+
 class Album:
     def __init__(self, album_id: str, title: str, artist, release_year: int) -> None:
         self.album_id = album_id
@@ -9,12 +11,15 @@ class Album:
 
     def add_track(self, track) -> None:
         track.album = self
+
         if track not in self.tracks:
             self.tracks.append(track)
-        self.tracks.sort(key=lambda current_track: current_track.track_number)
+
+        # keep album tracks in the correct order
+        self.tracks.sort(key=lambda item: item.track_number)
 
     def track_ids(self) -> set[str]:
-        ids: set[str] = set()
+        ids = set()
         for track in self.tracks:
             ids.add(track.track_id)
         return ids
