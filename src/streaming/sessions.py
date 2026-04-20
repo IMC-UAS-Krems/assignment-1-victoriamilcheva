@@ -1,13 +1,19 @@
 class ListeningSession:
-    """Stores one listening event of a user playing a track."""
-
-    def __init__(self, user, track, duration_seconds: int, timestamp) -> None:
+    """stores one listening event of a user"""
+    def __init__(
+        self,
+        session_id: str,
+        user,
+        track,
+        timestamp,
+        duration_seconds: int
+    ) -> None:
+        self.session_id = session_id
         self.user = user
         self.track = track
-        self.duration_seconds = duration_seconds
         self.timestamp = timestamp
+        self.duration_seconds = duration_seconds
+        self.duration_listened_seconds = duration_seconds
 
-    @property
     def duration_listened_minutes(self) -> float:
-        """Return listened duration converted to minutes."""
         return self.duration_seconds / 60

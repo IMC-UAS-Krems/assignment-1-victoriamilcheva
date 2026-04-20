@@ -1,15 +1,9 @@
-from __future__ import annotations
-
-from abc import ABC
-from datetime import date
-
-
-class User(ABC):
+class User:
     def __init__(self, user_id: str, name: str, age: int) -> None:
         self.user_id = user_id
         self.name = name
         self.age = age
-        self.sessions: list = []
+        self.sessions = []
 
     def add_session(self, session) -> None:
         self.sessions.append(session)
@@ -17,55 +11,66 @@ class User(ABC):
     def total_listening_seconds(self) -> int:
         total = 0
         for session in self.sessions:
-            total += session.duration_listened_seconds
+            total += session.duration_seconds
         return total
 
     def total_listening_minutes(self) -> float:
-        return self.total_listening_seconds() / 60.0
+        return self.total_listening_seconds() / 60
 
     def unique_tracks_listened(self) -> set[str]:
-        ids = set()
+        track_ids = set()
         for session in self.sessions:
-            ids.add(session.track.track_id)
-        return ids
-
-    def __str__(self) -> str:
-        return self.name
+            track_ids.add(session.track.track_id)
+        return track_ids
 
 
 class FreeUser(User):
-    MAX_SKIPS_PER_HOUR = 6
-
-    def __init__(self, user_id: str, name: str, age: int) -> None:
-        super().__init__(user_id, name, age)
+    pass
 
 
 class PremiumUser(User):
-    def __init__(self, user_id: str, name: str, age: int, subscription_start: date) -> None:
+    def __init__(
+        self,
+        user_id: str,
+        name: str,
+        age: int,
+        subscription_start=None
+    ) -> None:
         super().__init__(user_id, name, age)
         self.subscription_start = subscription_start
 
 
-class FamilyAccountUser(User):
-    def __init__(self, user_id: str, name: str, age: int) -> None:
-        super().__init__(user_id, name, age)
-        self.sub_users: list[FamilyMember] = []
+class FamilyAccountUser(PremiumUser):
+    def __init__(
+        self,
+        user_id: str,
+        name: str,
+        age: int,
+        subscription_start=None
+    ) -> None:
+        super().__init__(user_id, name, age, subscription_start)
+        self.sub_users = []
 
-    def add_sub_user(self, sub_user) -> None:
-        if sub_user not in self.sub_users:
-            self.sub_users.append(sub_user)
+    def add_member(self, member) -> None:
+        if member not in self.sub_users:
+            self.sub_users.append(member)
 
-    def all_members(self) -> list[User]:
-        all_people: list[User] = [self]
-        for sub_user in self.sub_users:
-            all_people.append(sub_user)
-        return all_people
+    def add_sub_user(self, member) -> None:
+        self.add_member(member)
+
+    def all_members(self) -> list:
+        return [self] + list(self.sub_users)
 
 
 class FamilyMember(User):
-    def __init__(self, user_id: str, name: str, age: int, parent: FamilyAccountUser) -> None:
+    def __init__(
+        self,
+        user_id: str,
+        name: str,
+        age: int,
+        parent
+    ) -> None:
         super().__init__(user_id, name, age)
         self.parent = parent
-
-        if self not in parent.sub_users:
-            parent.add_sub_user(self)
+        self.parent_account = parent
+        self.parent.add_member(self)
