@@ -1,136 +1,177 @@
-from __future__ import annotations
-
 from datetime import datetime, timedelta
 
-from .albums import Album
-from .artists import Artist
 from .playlists import CollaborativePlaylist, Playlist
-from .sessions import ListeningSession
-from .tracks import Song, Track
-from .users import FamilyMember, PremiumUser, User
+from .tracks import Song
+from .users import FamilyMember, PremiumUser
 
 
 class StreamingPlatform:
-    def __init__(self, name: str) -> None:
-        self.name = name
-        self._catalogue: dict[str, Track] = {}
-        self._users: dict[str, User] = {}
-        self._artists: dict[str, Artist] = {}
-        self._albums: dict[str, Album] = {}
-        self._playlists: dict[str, Playlist] = {}
-        self._sessions: list[ListeningSession] = []
+    """Main class that stores all data for the streaming platform."""
 
-    def add_track(self, track: Track) -> None:
-        self._catalogue[track.track_id] = track
+    def __init__(self) -> None:
+        self._tracks = {}
+        self._users = {}
+        self._artists = {}
+        self._albums = {}
+        self._playlists = []
+        self._sessions = []
 
-    def add_user(self, user: User) -> None:
+    def add_track(self, track) -> None:
+        self._tracks[track.track_id] = track
+
+    def add_user(self, user) -> None:
         self._users[user.user_id] = user
 
-    def add_artist(self, artist: Artist) -> None:
+    def add_artist(self, artist) -> None:
         self._artists[artist.artist_id] = artist
 
-    def add_album(self, album: Album) -> None:
+    def add_album(self, album) -> None:
         self._albums[album.album_id] = album
 
-    def add_playlist(self, playlist: Playlist) -> None:
-        self._playlists[playlist.playlist_id] = playlist
+    def add_playlist(self, playlist) -> None:
+        self._playlists.append(playlist)
 
-    def record_session(self, session: ListeningSession) -> None:
+    def record_session(self, session) -> None:
         self._sessions.append(session)
         session.user.add_session(session)
 
-    def get_track(self, track_id: str) -> Track | None:
-        return self._catalogue.get(track_id)
+    def get_track(self, track_id: str):
+        return self._tracks.get(track_id)
 
-    def get_user(self, user_id: str) -> User | None:
+    def get_user(self, user_id: str):
         return self._users.get(user_id)
 
-    def get_artist(self, artist_id: str) -> Artist | None:
+    def get_artist(self, artist_id: str):
         return self._artists.get(artist_id)
 
-    def get_album(self, album_id: str) -> Album | None:
+    def get_album(self, album_id: str):
         return self._albums.get(album_id)
 
-    def all_users(self) -> list[User]:
+    def all_users(self) -> list:
         return list(self._users.values())
 
-    def all_tracks(self) -> list[Track]:
-        return list(self._catalogue.values())
+    def all_tracks(self) -> list:
+        return list(self._tracks.values())
 
-    #q1
     def total_listening_time_minutes(self, start: datetime, end: datetime) -> float:
-        all_seconds = 0
+        """Q1"""
+        total_seconds = 0
+
         for session in self._sessions:
             if start <= session.timestamp <= end:
-                all_seconds += session.duration_listened_seconds
-        return all_seconds / 60.0
+                total_seconds += session.duration_seconds
 
-    #q2
+        return total_seconds / 60
+
     def avg_unique_tracks_per_premium_user(self, days: int = 30) -> float:
+        """Q2"""
         premium_users = []
+
         for user in self._users.values():
-            if type(user) is PremiumUser:
+            if isinstance(user, PremiumUser):
                 premium_users.append(user)
+
         if len(premium_users) == 0:
             return 0.0
-        start_time = datetime.now() - timedelta(days=days)
-        total_unique = 0
-        for user in premium_users:
-            listened_ids = set()
-            for session in user.sessions:
-                if session.timestamp >= start_time:
-                    listened_ids.add(session.track.track_id)
-            total_unique += len(listened_ids)
-        return total_unique / len(premium_users)
 
-    #q3
-    def track_with_most_distinct_listeners(self) -> Track | None:
+        if len(self._sessions) == 0:
+            return 0.0
+
+        latest_time = self._sessions[0].timestamp
+        for session in self._sessions:
+            if session.timestamp > latest_time:
+                latest_time = session.timestamp
+
+        start_time = latest_time - timedelta(days=days)
+
+        total_unique_tracks = 0
+
+        for user in premium_users:
+            listened_track_ids = set()
+
+            for session in user.sessions:
+                if start_time <= session.timestamp <= latest_time:
+                    listened_track_ids.add(session.track.track_id)
+
+            total_unique_tracks += len(listened_track_ids)
+
+        return total_unique_tracks / len(premium_users)
+
+    def track_with_most_distinct_listeners(self):
+        """Q3"""
         if len(self._sessions) == 0:
             return None
-        listeners_per_track = {}
+
+        data = {}
+
         for session in self._sessions:
             track_id = session.track.track_id
-            user_id = session.user.user_id
-            if track_id not in listeners_per_track:
-                listeners_per_track[track_id] = set()
-            listeners_per_track[track_id].add(user_id)
+
+            if track_id not in data:
+                data[track_id] = {
+                    "track": session.track,
+                    "users": set()
+                }
+
+            data[track_id]["users"].add(session.user.user_id)
+
         best_track = None
         best_count = -1
 
-        for track in self._catalogue.values():
-            current_count = len(listeners_per_track.get(track.track_id, set()))
-            if current_count > best_count:
-                best_count = current_count
-                best_track = track
+        for info in data.values():
+            count = len(info["users"])
+            if count > best_count:
+                best_count = count
+                best_track = info["track"]
+
         return best_track
 
-    #q4
     def avg_session_duration_by_user_type(self) -> list[tuple[str, float]]:
-        seconds_by_type = {}
+        """Q4"""
+        grouped = {}
+
+        for user in self._users.values():
+            type_name = type(user).__name__
+            if type_name not in grouped:
+                grouped[type_name] = {
+                    "sum": 0,
+                    "count": 0
+                }
+
         for session in self._sessions:
             type_name = type(session.user).__name__
-            if type_name not in seconds_by_type:
-                seconds_by_type[type_name] = []
-            seconds_by_type[type_name].append(session.duration_listened_seconds)
-        answer = []
-        for type_name, values in seconds_by_type.items():
-            average = sum(values) / len(values)
-            answer.append((type_name, float(average)))
-        answer.sort(key=lambda item: item[1], reverse=True)
-        return answer
+            grouped[type_name]["sum"] += session.duration_seconds
+            grouped[type_name]["count"] += 1
 
-    #q5
-    def total_listening_time_underage_sub_users_minutes(self, age_threshold: int = 18) -> float:
-        all_seconds = 0
+        result = []
+
+        for type_name, info in grouped.items():
+            if info["count"] == 0:
+                average = 0.0
+            else:
+                average = info["sum"] / info["count"]
+
+            result.append((type_name, average))
+
+        result.sort(key=lambda x: x[1], reverse=True)
+        return result
+
+    def total_listening_time_underage_sub_users_minutes(
+        self,
+        age_threshold: int = 18
+    ) -> float:
+        """Q5"""
+        total_seconds = 0
+
         for session in self._sessions:
-            user = session.user
-            if isinstance(user, FamilyMember) and user.age < age_threshold:
-                all_seconds += session.duration_listened_seconds
-        return all_seconds / 60.0
+            if isinstance(session.user, FamilyMember) and session.user.age < age_threshold:
+                total_seconds += session.duration_seconds
 
-    #q6
-    def top_artists_by_listening_time(self, n: int = 5) -> list[tuple[Artist, float]]:
-        seconds_per_artist = {}
+        return total_seconds / 60
+
+    def top_artists_by_listening_time(self, n: int = 5) -> list[tuple[object, float]]:
+        """Q6"""
+        artist_times = {}
 
         for session in self._sessions:
             track = session.track
@@ -138,96 +179,133 @@ class StreamingPlatform:
             if isinstance(track, Song):
                 artist = track.artist
 
-                if artist not in seconds_per_artist:
-                    seconds_per_artist[artist] = 0
-                seconds_per_artist[artist] += session.duration_listened_seconds
+                if artist.artist_id not in artist_times:
+                    artist_times[artist.artist_id] = {
+                        "artist": artist,
+                        "seconds": 0
+                    }
 
-        answer = []
+                artist_times[artist.artist_id]["seconds"] += session.duration_seconds
 
-        for artist, seconds in seconds_per_artist.items():
-            answer.append((artist, seconds / 60.0))
+        result = []
 
-        answer.sort(key=lambda item: item[1], reverse=True)
-        return answer[:n]
+        for info in artist_times.values():
+            minutes = info["seconds"] / 60
+            result.append((info["artist"], minutes))
 
-    #q7
+        result.sort(key=lambda x: x[1], reverse=True)
+        return result[:n]
+
     def user_top_genre(self, user_id: str) -> tuple[str, float] | None:
+        """Q7"""
         user = self.get_user(user_id)
+
         if user is None:
             return None
-        if len(user.sessions) == 0:
-            return None
-        seconds_per_genre = {}
-        all_seconds = 0
+
+        total_seconds = 0
+        genre_times = {}
+
         for session in user.sessions:
             genre = session.track.genre
-            seconds = session.duration_listened_seconds
-            if genre not in seconds_per_genre:
-                seconds_per_genre[genre] = 0
-            seconds_per_genre[genre] += seconds
-            all_seconds += seconds
+            total_seconds += session.duration_seconds
 
-        best_genre = ""
+            if genre not in genre_times:
+                genre_times[genre] = 0
+
+            genre_times[genre] += session.duration_seconds
+
+        if total_seconds == 0:
+            return None
+
+        best_genre = None
         best_seconds = -1
 
-        for genre, seconds in seconds_per_genre.items():
+        for genre, seconds in genre_times.items():
             if seconds > best_seconds:
                 best_seconds = seconds
                 best_genre = genre
-        percentage = (best_seconds / all_seconds) * 100.0
+
+        percentage = (best_seconds / total_seconds) * 100
         return (best_genre, percentage)
 
-    #q8
-    def collaborative_playlists_with_many_artists(self, threshold: int = 3) -> list[CollaborativePlaylist]:
-        answer = []
-        for playlist in self._playlists.values():
+    def collaborative_playlists_with_many_artists(
+        self,
+        threshold: int = 3
+    ) -> list[CollaborativePlaylist]:
+        """Q8"""
+        result = []
+
+        for playlist in self._playlists:
             if isinstance(playlist, CollaborativePlaylist):
                 artist_ids = set()
+
                 for track in playlist.tracks:
                     if isinstance(track, Song):
                         artist_ids.add(track.artist.artist_id)
-                if len(artist_ids) > threshold:
-                    answer.append(playlist)
-        return answer
 
-    #q9
+                if len(artist_ids) > threshold:
+                    result.append(playlist)
+
+        return result
+
     def avg_tracks_per_playlist_type(self) -> dict[str, float]:
-        normal_counts = []
-        collaborative_counts = []
-        for playlist in self._playlists.values():
+        """Q9"""
+        playlist_total = 0
+        playlist_count = 0
+        collab_total = 0
+        collab_count = 0
+
+        for playlist in self._playlists:
             if type(playlist) is Playlist:
-                normal_counts.append(len(playlist.tracks))
+                playlist_total += len(playlist.tracks)
+                playlist_count += 1
             elif isinstance(playlist, CollaborativePlaylist):
-                collaborative_counts.append(len(playlist.tracks))
-        normal_average = 0.0
-        if len(normal_counts) > 0:
-            normal_average = sum(normal_counts) / len(normal_counts)
-        collaborative_average = 0.0
-        if len(collaborative_counts) > 0:
-            collaborative_average = sum(collaborative_counts) / len(collaborative_counts)
+                collab_total += len(playlist.tracks)
+                collab_count += 1
+
+        if playlist_count == 0:
+            playlist_avg = 0.0
+        else:
+            playlist_avg = playlist_total / playlist_count
+
+        if collab_count == 0:
+            collab_avg = 0.0
+        else:
+            collab_avg = collab_total / collab_count
+
         return {
-            "Playlist": float(normal_average),
-            "CollaborativePlaylist": float(collaborative_average),
+            "Playlist": playlist_avg,
+            "CollaborativePlaylist": collab_avg
         }
 
-    #q10
-    def users_who_completed_albums(self) -> list[tuple[User, list[str]]]:
-        answer = []
+    def users_who_completed_albums(self) -> list[tuple[object, list[str]]]:
+        """Q10"""
+        result = []
+
         for user in self._users.values():
-            listened_ids = set()
+            listened_track_ids = set()
+
             for session in user.sessions:
-                listened_ids.add(session.track.track_id)
-            completed_titles = []
+                listened_track_ids.add(session.track.track_id)
+
+            completed_album_titles = []
+
             for album in self._albums.values():
                 if len(album.tracks) == 0:
                     continue
+
                 completed = True
+
                 for track in album.tracks:
-                    if track.track_id not in listened_ids:
+                    if track.track_id not in listened_track_ids:
                         completed = False
                         break
+
                 if completed:
-                    completed_titles.append(album.title)
-            if len(completed_titles) > 0:
-                answer.append((user, completed_titles))
-        return answer
+                    completed_album_titles.append(album.title)
+
+            if len(completed_album_titles) > 0:
+                result.append((user, completed_album_titles))
+
+        return result

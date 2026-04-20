@@ -1,19 +1,13 @@
-from __future__ import annotations
-from datetime import datetime
 class ListeningSession:
-    def __init__(
-        self,
-        session_id: str,
-        user,
-        track,
-        timestamp: datetime,
-        duration_listened_seconds: int,
-    ) -> None:
-        self.session_id = session_id
+    """Stores one listening event of a user playing a track."""
+
+    def __init__(self, user, track, duration_seconds: int, timestamp) -> None:
         self.user = user
         self.track = track
+        self.duration_seconds = duration_seconds
         self.timestamp = timestamp
-        self.duration_listened_seconds = duration_listened_seconds
 
+    @property
     def duration_listened_minutes(self) -> float:
-        return self.duration_listened_seconds / 60.0
+        """Return listened duration converted to minutes."""
+        return self.duration_seconds / 60

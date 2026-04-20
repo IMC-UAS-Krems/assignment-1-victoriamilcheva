@@ -1,26 +1,23 @@
-from .albums import Album
 from .artists import Artist
-from .platform import StreamingPlatform
-from .playlists import CollaborativePlaylist, Playlist
-from .sessions import ListeningSession
+from .albums import Album
 from .tracks import (
+    Track,
+    Song,
+    SingleRelease,
     AlbumTrack,
-    AudiobookTrack,
+    Podcast,
     InterviewEpisode,
     NarrativeEpisode,
-    Podcast,
-    SingleRelease,
-    Song,
-    Track,
+    AudiobookTrack,
 )
-from .users import FamilyAccountUser, FamilyMember, FreeUser, PremiumUser, User
+from .users import User, FreeUser, PremiumUser, FamilyAccountUser, FamilyMember
+from .playlists import Playlist, CollaborativePlaylist
+from .sessions import ListeningSession
+from .platform import StreamingPlatform
 
 __all__ = [
     "Artist",
     "Album",
-    "Playlist",
-    "CollaborativePlaylist",
-    "ListeningSession",
     "Track",
     "Song",
     "SingleRelease",
@@ -34,5 +31,8 @@ __all__ = [
     "PremiumUser",
     "FamilyAccountUser",
     "FamilyMember",
+    "Playlist",
+    "CollaborativePlaylist",
+    "ListeningSession",
     "StreamingPlatform",
 ]
